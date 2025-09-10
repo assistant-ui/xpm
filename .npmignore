@@ -1,0 +1,13 @@
+src/
+tsconfig.json
+.gitignore
+*.log
+.DS_Store
+coverage/
+.env
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+SPEC.md
