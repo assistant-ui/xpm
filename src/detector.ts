@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { PackageManager, PACKAGE_MANAGERS, SUPPORTED_PACKAGE_MANAGERS } from './package-manager-config';
+import { getDefaultPackageManager } from './config';
 
 export interface DetectionResult {
   packageManager: PackageManager;
@@ -47,7 +48,7 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
   const isWorkspace = lockfileDir !== null && lockfileDir !== packageJsonDir;
   
   // Try to read package.json for corepack config
-  let detectedPM: PackageManager = 'npm';
+  let detectedPM: PackageManager | null = null;
   try {
     const packageJson = JSON.parse(fs.readFileSync(path.join(detectionRoot, 'package.json'), 'utf-8'));
     const pmField = packageJson.packageManager ?? packageJson.devEngines?.packageManager?.name;
@@ -60,13 +61,18 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
   } catch {}
   
   // Check for lockfiles if no corepack config
-  if (detectedPM === 'npm') {
+  if (!detectedPM) {
     for (const manager of ['bun', 'pnpm', 'yarn', 'npm'] as PackageManager[]) {
       if (fs.existsSync(path.join(detectionRoot, PACKAGE_MANAGERS[manager].lockfile))) {
         detectedPM = manager;
         break;
       }
     }
+  }
+  
+  // Fall back to configured default
+  if (!detectedPM) {
+    detectedPM = getDefaultPackageManager();
   }
   
   return {

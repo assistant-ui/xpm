@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { detectPackageManager, shouldRunAtWorkspaceRoot } from './detector';
 import { synchronizeDependencies } from './dependency-synchronizer';
 import { mapCommand } from './command-mapper';
+import { setDefaultPackageManager } from './config';
 
 const skipInstallCommands = ['install', 'i', 'add', 'remove', 'uninstall', 'update', 'upgrade'];
 
@@ -53,9 +54,13 @@ Commands:
   install/i/add [pkg]  Install package(s)
   remove/rm/uninstall  Remove package
   upgrade              Update packages
+  set-config           Set configuration
   [script]             Run package.json script
 
 Flags: --dry-run, --version/-v, --help/-h
+
+Config:
+  xpm set-config default-package-manager <npm|yarn|pnpm|bun>
 
 Detects: npm/yarn/pnpm/bun`);
   }
@@ -63,9 +68,25 @@ Detects: npm/yarn/pnpm/bun`);
   run(): void {
     this.parseFlags();
 
+    // Handle set-config command
+    const [command, ...args] = this.args;
+    if (command === 'set-config') {
+      if (args[0] === 'default-package-manager' && args[1]) {
+        try {
+          setDefaultPackageManager(args[1]);
+          process.exit(0);
+        } catch (error) {
+          console.error(error instanceof Error ? error.message : error);
+          process.exit(1);
+        }
+      } else {
+        console.error('Usage: xpm set-config default-package-manager <npm|yarn|pnpm|bun>');
+        process.exit(1);
+      }
+    }
+
     try {
       const { packageManager, projectRoot, isWorkspace, workspaceRoot } = detectPackageManager();
-      const [command, ...args] = this.args;
 
       // Auto-sync dependencies unless it's an install-like command or no command
       if (command && !skipInstallCommands.includes(command)) {

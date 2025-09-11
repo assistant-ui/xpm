@@ -1,12 +1,17 @@
 # xpm - Universal Package Manager Wrapper
 
-`xpm` is built for those who work across multiple projects with different package managers. You can use `xpm` instead of `npm`/`yarn`/`pnpm`/`bun`. `xpm` invokes the right package manager for you. Additonally, it installs package dependencies if you forgot to do it.
+Working across multiple projects with different package managers? 
+
+You can use `xpm` instead of `npm`/`yarn`/`pnpm`/`bun`.
+
+Think of `xpm` as your universal translator for package managers. When you run `xpm`, it figures out which package manager your project uses, ensures your dependencies are up-to-date, and runs the appropriate command. It's like having muscle memory that works everywhere.
 
 For example, when you run `xpm dev` in a project:
 
-- xpm detects the package manager
-- auto-installs dependencies if necessary (compares lockfile hash)
+- `xpm` detects the package manager
+- it auto-installs dependencies if necessary (compares lockfile hash)
 - runs `npm run dev` / `yarn dev` / `pnpm dev` / `bun dev`
+
 
 ## Install
 
@@ -33,6 +38,20 @@ xpm dev           # Run a script
 xpx prettier      # Download and run from the registry
 ```
 
+## Configuration
+
+Set the default package manager for new projects:
+
+```bash
+xpm set-config default-package-manager pnpm
+```
+
+The default is used when no lockfile or package.json `packageManager` field is found.
+
+You can also set it via environment variable:
+```bash
+export XPM_DEFAULT_PM=bun
+```
 
 ## License
 
