@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PackageManager, PACKAGE_MANAGERS, SUPPORTED_PACKAGE_MANAGERS } from './package-manager-config';
 import { getDefaultPackageManager } from './config';
+import { INSTALL_COMMANDS, WORKSPACE_ROOT_COMMANDS } from './command-constants';
 
 export interface DetectionResult {
   packageManager: PackageManager;
@@ -84,14 +85,12 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
 }
 
 export function shouldRunAtWorkspaceRoot(command: string, args: string[]): boolean {
-  const workspaceRootCommands = new Set(['install', 'i', 'update', 'upgrade', 'audit', 'outdated']);
-  
-  // Install/i with packages should run in current dir, without should run at root
-  if ((command === 'install' || command === 'i')) {
+  // Install commands with packages should run in current dir, without should run at root
+  if (INSTALL_COMMANDS.includes(command as any)) {
     return args.length === 0;
   }
   
-  return workspaceRootCommands.has(command);
+  return WORKSPACE_ROOT_COMMANDS.has(command);
 }
 
 export function isWorkspaceRoot(dir: string): boolean {

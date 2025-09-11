@@ -1,45 +1,49 @@
 import { PackageManager } from './package-manager-config';
 import { hasScript } from './package-json';
+import { INSTALL_COMMANDS, UNINSTALL_COMMANDS, UPDATE_COMMANDS, NPM_BUILTIN_COMMANDS } from './command-constants';
 
-// Simplified command mappings - only what differs between package managers
+// Helper to create mappings for all aliases
+function createMappings(aliases: readonly string[], mappings: Partial<Record<PackageManager, [string, ...string[]]>>) {
+  const result: Record<string, Partial<Record<PackageManager, [string, ...string[]]>>> = {};
+  for (const alias of aliases) {
+    result[alias] = mappings;
+  }
+  return result;
+}
+
+// Command mappings - what differs between package managers
+const installMappings = createMappings(
+  INSTALL_COMMANDS,
+  { yarn: ['add'], pnpm: ['add'], bun: ['add'] }
+);
+
+const uninstallMappings = createMappings(
+  UNINSTALL_COMMANDS,
+  { yarn: ['remove'], pnpm: ['remove'], bun: ['remove'] }
+);
+
+const updateMappings = createMappings(
+  UPDATE_COMMANDS,
+  { yarn: ['update'], bun: ['update'] }
+);
+
 const commandMappings: Record<string, Partial<Record<PackageManager, [string, ...string[]]>>> = {
-  // Install/add commands
-  'install': { yarn: ['add'], pnpm: ['add'], bun: ['add'] },
-  'i': { yarn: ['add'], pnpm: ['add'], bun: ['add'] },
-  
-  // Remove commands
-  'uninstall': { yarn: ['remove'], pnpm: ['remove'], bun: ['remove'] },
-  'rm': { yarn: ['remove'], pnpm: ['remove'], bun: ['remove'] },
-  
-  // Update commands
-  'upgrade': { yarn: ['update'], bun: ['update'] },
-  'up': { yarn: ['update'], bun: ['update'] },
-  
+  ...installMappings,
+  ...uninstallMappings,
+  ...updateMappings,
   // Execute commands  
   'exec': { bun: ["run"] },
 };
 
-// Known npm commands that shouldn't be treated as scripts
-const npmBuiltinCommands = new Set([
-  'access', 'adduser', 'audit', 'bin', 'bugs', 'cache', 'ci', 'completion',
-  'config', 'dedupe', 'deprecate', 'diff', 'dist-tag', 'docs', 'doctor',
-  'edit', 'exec', 'explain', 'explore', 'fund', 'help', 'hook', 'init',
-  'install', 'install-ci-test', 'install-test', 'link', 'll', 'login',
-  'logout', 'ls', 'org', 'outdated', 'owner', 'pack', 'ping', 'pkg',
-  'prefix', 'profile', 'prune', 'publish', 'query', 'rebuild', 'repo',
-  'restart', 'root', 'run', 'run-script', 'search', 'set', 'shrinkwrap',
-  'star', 'stars', 'start', 'stop', 'team', 'test', 'token', 'uninstall',
-  'unpublish', 'unstar', 'update', 'version', 'view', 'whoami', 'i'
-]);
 
 export function mapCommand(command: string, args: string[], packageManager: PackageManager, projectRoot?: string): { command: string; args: string[] } {
   // Special case: install without args always uses 'install'
-  if ((command === 'install' || command === 'i') && args.length === 0) {
+  if (INSTALL_COMMANDS.includes(command as any) && args.length === 0) {
     return { command: 'install', args: [] };
   }
   
   // Only map dev flags for install/add commands
-  const isInstallCommand = ['install', 'i', 'add'].includes(command);
+  const isInstallCommand = INSTALL_COMMANDS.includes(command as any);
   const mappedArgs = isInstallCommand ? args.map(arg => {
     // Map all dev flags to package manager specific format
     if (arg === '-D' || arg === '--save-dev' || arg === '--dev') {
@@ -57,7 +61,7 @@ export function mapCommand(command: string, args: string[], packageManager: Pack
   }
   
   // npm needs 'run' prefix for scripts not in built-in commands
-  if (packageManager === 'npm' && !npmBuiltinCommands.has(command) && hasScript(command, projectRoot)) {
+  if (packageManager === 'npm' && !NPM_BUILTIN_COMMANDS.has(command) && projectRoot && hasScript(command, projectRoot)) {
     return { command: 'run', args: [command, ...args] };
   }
   

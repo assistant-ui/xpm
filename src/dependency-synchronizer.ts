@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import { PackageManager, getConfig } from './package-manager-config';
 import { readCache, writeCache, hashFile } from './lockfile-hash-cache';
 
@@ -45,7 +45,16 @@ export function synchronizeDependencies(options: SyncOptions): void {
   }
   
   try {
-    execSync(command, { stdio: 'inherit', encoding: 'utf8', cwd: executionRoot });
+    const installCmd = ciMode ? config.ciCommand : config.installCommand;
+    const args = installCmd.split(' ');
+    const result = spawnSync(packageManager, args, { stdio: 'inherit', encoding: 'utf8', cwd: executionRoot });
+    
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(`Command failed with exit code ${result.status}`);
+    }
     
     const lockfilePath = path.join(executionRoot, getConfig(packageManager).lockfile);
     writeCache(executionRoot, {

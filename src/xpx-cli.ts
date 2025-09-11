@@ -42,19 +42,27 @@ try {
   const { packageManager } = detectPackageManager();
   const executor = executorMap[packageManager];
   
-  // For yarn v1, fall back to npx since it doesn't have dlx
-  const finalExecutor = packageManager === 'yarn' ? ['yarn', 'dlx'] : [executor];
-  const finalArgs = packageManager === 'yarn' ? args : args;
+  // Build executor command
+  let execCommand: string;
+  let execArgs: string[];
+  
+  if (packageManager === 'yarn') {
+    execCommand = 'yarn';
+    execArgs = ['dlx', ...args];
+  } else {
+    execCommand = executor;
+    execArgs = args;
+  }
   
   // Execute the command
-  const child = spawn(finalExecutor[0], [...finalExecutor.slice(1), ...finalArgs], {
+  const child = spawn(execCommand, execArgs, {
     stdio: 'inherit',
     shell: false
   });
 
   child.on('exit', (code) => process.exit(code || 0));
   child.on('error', (error) => {
-    console.error(`Failed to execute ${finalExecutor[0]}: ${error.message}`);
+    console.error(`Failed to execute ${execCommand}: ${error.message}`);
     process.exit(1);
   });
 } catch (error) {

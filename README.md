@@ -35,6 +35,8 @@ xpm               # Install dependencies
 xpm add react     # Add a package
 xpm dev           # Run a script
 
+xpm add -g turbo  # Installs global dependency
+
 xpx prettier      # Download and run from the registry
 ```
 
@@ -43,15 +45,27 @@ xpx prettier      # Download and run from the registry
 Set the default package manager for new projects:
 
 ```bash
-xpm set-config default-package-manager pnpm
+xpm set-config default-package-manager <npm|yarn|pnpm|bun>
 ```
 
 The default is used when no lockfile or package.json `packageManager` field is found.
 
 You can also set it via environment variable:
 ```bash
-export XPM_DEFAULT_PM=bun
+export XPM_DEFAULT_PM=<npm|yarn|pnpm|bun>
 ```
+
+Set the package manager for -g commands:
+
+```bash
+xpm set-config global-package-manager <npm|yarn|pnpm|bun>
+```
+
+You can also set it via environment variable:
+```bash
+export XPM_GLOBAL_PM=<npm|yarn|pnpm|bun>
+```
+
 
 ## License
 
