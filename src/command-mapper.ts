@@ -5,35 +5,18 @@ import { hasScript } from './package-json';
 const commandMappings: Record<string, Partial<Record<PackageManager, [string, ...string[]]>>> = {
   // Install/add commands
   'install': { yarn: ['add'], pnpm: ['add'], bun: ['add'] },
-  'add': { npm: ['install'] },
   'i': { yarn: ['add'], pnpm: ['add'], bun: ['add'] },
   
   // Remove commands
-  'remove': { npm: ['uninstall'] },
   'uninstall': { yarn: ['remove'], pnpm: ['remove'], bun: ['remove'] },
-  'rm': { npm: ['uninstall'], yarn: ['remove'], pnpm: ['remove'], bun: ['remove'] },
+  'rm': { yarn: ['remove'], pnpm: ['remove'], bun: ['remove'] },
   
   // Update commands
-  'upgrade': { npm: ['update'], pnpm: ['update'], bun: ['update'] },
+  'upgrade': { yarn: ['update'], bun: ['update'] },
+  'up': { yarn: ['update'], bun: ['update'] },
   
   // Execute commands  
-  'x': { npm: ['exec'], yarn: ['exec'], pnpm: ['exec'] },
-  'dlx': { npm: ['exec'], bun: ['x'] },
-  
-  // Other commands
-  'why': { npm: ['ls'], bun: ['pm', 'ls'] },
-  'cache-clean': {
-    npm: ['cache', 'clean', '--force'],
-    yarn: ['cache', 'clean'],
-    pnpm: ['store', 'prune'],
-    bun: ['pm', 'cache', 'rm']
-  },
-  'global': {
-    npm: ['install', '-g'],
-    yarn: ['global', 'add'],
-    pnpm: ['add', '-g'],
-    bun: ['add', '-g']
-  }
+  'exec': { bun: ["run"] },
 };
 
 // Known npm commands that shouldn't be treated as scripts

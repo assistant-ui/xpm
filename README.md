@@ -1,4 +1,4 @@
-# xpm - Universal Package Manager CLI
+# xpm - Universal Package Manager Wrapper
 
 `xpm` is built for those who work across multiple projects with different package managers. You can use `xpm` instead of `npm`/`yarn`/`pnpm`/`bun`. `xpm` invokes the right package manager for you. Additonally, it installs package dependencies if you forgot to do it.
 
@@ -29,6 +29,8 @@ npm install -g @assistant-ui/xpm
 xpm               # Install dependencies
 xpm add react     # Add a package
 xpm dev           # Run a script
+
+xpx prettier      # Download and run from the registry
 ```
 
 

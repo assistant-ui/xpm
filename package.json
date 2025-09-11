@@ -1,10 +1,11 @@
 {
   "name": "@assistant-ui/xpm",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Universal package manager wrapper that automatically detects and uses the right package manager",
   "main": "dist/index.js",
   "bin": {
-    "xpm": "./dist/cli.js"
+    "xpm": "./dist/cli.js",
+    "xpx": "./dist/xpx-cli.js"
   },
   "scripts": {
     "build": "tsc",
