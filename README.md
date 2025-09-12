@@ -42,29 +42,41 @@ xpx prettier      # Download and run from the registry
 
 ## Configuration
 
-Set the default package manager for new projects:
+xpm defaults to npm for global installs. Configure this with a config file at `~/.config/xpm/config.json` or `~/.xpmrc`.
+
+### Default Package Manager
+
+Set the default package manager for new projects (when no lockfile or package.json `packageManager` field is found):
 
 ```bash
 xpm set-config default-package-manager <npm|yarn|pnpm|bun>
 ```
 
-The default is used when no lockfile or package.json `packageManager` field is found.
-
-You can also set it via environment variable:
+Environment variable (takes precedence):
 ```bash
 export XPM_DEFAULT_PM=<npm|yarn|pnpm|bun>
 ```
 
-Set the package manager for -g commands:
+### Global Package Manager
+
+Set which package manager to use for global installs (`-g` flag):
 
 ```bash
 xpm set-config global-package-manager <npm|yarn|pnpm|bun>
 ```
 
-You can also set it via environment variable:
+Environment variable (takes precedence):
 ```bash
 export XPM_GLOBAL_PM=<npm|yarn|pnpm|bun>
 ```
+
+Default: `npm`
+
+### Configuration Priority
+
+1. Environment variables (`XPM_DEFAULT_PM`, `XPM_GLOBAL_PM`)
+2. Config file (`~/.config/xpm/config.json` or `~/.xpmrc`)
+3. Default fallback (`npm`)
 
 
 ## License
