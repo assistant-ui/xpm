@@ -28,20 +28,35 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
   
   // Find lockfile (might be in parent for workspaces)
   let lockfileDir: string | null = null;
+  let lockfileManager: PackageManager | null = null;
   dir = packageJsonDir;
-  
+
+  // Search up the directory tree for lockfiles, but stay within Node.js project boundaries
   while (dir !== path.dirname(dir)) {
-    const hasLockfile = SUPPORTED_PACKAGE_MANAGERS
-      .some(mgr => !!findExistingLockfile(mgr, dir));
-    
-    if (hasLockfile) {
-      lockfileDir = dir;
+    // Check for lockfiles in current directory
+    for (const mgr of SUPPORTED_PACKAGE_MANAGERS) {
+      const lockfile = findExistingLockfile(mgr, dir);
+      if (lockfile) {
+        lockfileDir = dir;
+        lockfileManager = mgr;
+        break;
+      }
+    }
+
+    if (lockfileDir) break;
+
+    // Move up one directory
+    const parentDir = path.dirname(dir);
+
+    // Continue searching if parent has package.json (could be workspace root)
+    // or if parent's parent has package.json (we might be in packages/ dir)
+    if (fs.existsSync(path.join(parentDir, 'package.json')) ||
+        (parentDir !== path.dirname(parentDir) &&
+         fs.existsSync(path.join(path.dirname(parentDir), 'package.json')))) {
+      dir = parentDir;
+    } else {
       break;
     }
-    
-    const parentDir = path.dirname(dir);
-    if (!fs.existsSync(path.join(parentDir, 'package.json'))) break;
-    dir = parentDir;
   }
   
   const detectionRoot = lockfileDir || packageJsonDir;
@@ -59,13 +74,17 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
       }
     }
   } catch {}
-  
-  // Check for lockfiles if no corepack config
+
+  // Use the lockfile manager if found, otherwise check for lockfiles
   if (!detectedPM) {
-    for (const manager of SUPPORTED_PACKAGE_MANAGERS) {
-      if (findExistingLockfile(manager, detectionRoot)) {
-        detectedPM = manager;
-        break;
+    if (lockfileManager) {
+      detectedPM = lockfileManager;
+    } else {
+      for (const manager of SUPPORTED_PACKAGE_MANAGERS) {
+        if (findExistingLockfile(manager, detectionRoot)) {
+          detectedPM = manager;
+          break;
+        }
       }
     }
   }
