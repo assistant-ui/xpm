@@ -100,6 +100,10 @@ Detects: npm/yarn/pnpm/bun`);
     const hasGlobalFlag = this.args.includes('-g') || this.args.includes('--global');
     
     if (hasGlobalFlag && command && GLOBAL_SUPPORT_COMMANDS.includes(command as any)) {
+      // TODO(yarn-global): Yarn differs for global installs.
+      // - Yarn v1 uses: `yarn global <subcmd> ...` (no -g flag)
+      // - Yarn v2+ removed persistent global installs; prefer error + guidance or fallback
+      // Consider: detect Yarn major via `yarn -v` and special-case here.
       // Handle global installs/uninstalls
       const globalPackageManager = getGlobalPackageManager();
       const filteredArgs = this.args.filter(arg => arg !== '-g' && arg !== '--global');

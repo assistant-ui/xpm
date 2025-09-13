@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
-import { PackageManager, getConfig } from './package-manager-config';
+import { PackageManager, getPMConfig } from './package-manager-config';
+import { findExistingLockfile } from './detector';
 import { readCache, writeCache, hashFile } from './lockfile-hash-cache';
 
 export interface SyncOptions {
@@ -15,15 +16,16 @@ export interface SyncOptions {
 
 function needsInstall(packageManager: PackageManager, projectRoot: string, workspaceRoot?: string): boolean {
   const checkRoot = workspaceRoot || projectRoot;
-  const lockfilePath = path.join(checkRoot, getConfig(packageManager).lockfile);
-  
-  if (!fs.existsSync(lockfilePath)) return false;
-  
+  const lockfilePath = findExistingLockfile(packageManager, checkRoot);
+  const hasNodeModules = fs.existsSync(path.join(checkRoot, 'node_modules'));
+
+  if (!lockfilePath) return !hasNodeModules;
+
   const currentHash = hashFile(lockfilePath);
   const cache = readCache(checkRoot);
-  
-  return cache.lockfileHash !== currentHash || 
-         !fs.existsSync(path.join(checkRoot, 'node_modules'));
+  const hasLockfileChanged = cache.lockfileHash !== currentHash;
+
+  return hasLockfileChanged || !hasNodeModules;
 }
 
 export function synchronizeDependencies(options: SyncOptions): void {
@@ -32,7 +34,7 @@ export function synchronizeDependencies(options: SyncOptions): void {
   
   if (!force && !needsInstall(packageManager, projectRoot, workspaceRoot) && !ciMode) return;
   
-  const config = getConfig(packageManager);
+  const config = getPMConfig(packageManager);
   const command = `${packageManager} ${ciMode ? config.ciCommand : config.installCommand}`;
   
   if (dryRun) {
@@ -56,7 +58,8 @@ export function synchronizeDependencies(options: SyncOptions): void {
       throw new Error(`Command failed with exit code ${result.status}`);
     }
     
-    const lockfilePath = path.join(executionRoot, getConfig(packageManager).lockfile);
+    const lockfilePath = findExistingLockfile(packageManager, executionRoot);
+    if (!lockfilePath) return;
     writeCache(executionRoot, {
       lockfileHash: hashFile(lockfilePath) || undefined,
       lastSync: new Date().toISOString()

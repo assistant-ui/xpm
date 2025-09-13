@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { PackageManager, PACKAGE_MANAGERS, SUPPORTED_PACKAGE_MANAGERS } from './package-manager-config';
+import { PackageManager, SUPPORTED_PACKAGE_MANAGERS, getPMConfig } from './package-manager-config';
 import { getDefaultPackageManager } from './config';
 import { INSTALL_COMMANDS, WORKSPACE_ROOT_COMMANDS } from './command-constants';
 
@@ -31,9 +31,8 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
   dir = packageJsonDir;
   
   while (dir !== path.dirname(dir)) {
-    const hasLockfile = ['bun', 'pnpm', 'yarn', 'npm'].some(mgr => 
-      fs.existsSync(path.join(dir, PACKAGE_MANAGERS[mgr as PackageManager].lockfile))
-    );
+    const hasLockfile = SUPPORTED_PACKAGE_MANAGERS
+      .some(mgr => !!findExistingLockfile(mgr, dir));
     
     if (hasLockfile) {
       lockfileDir = dir;
@@ -63,8 +62,8 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
   
   // Check for lockfiles if no corepack config
   if (!detectedPM) {
-    for (const manager of ['bun', 'pnpm', 'yarn', 'npm'] as PackageManager[]) {
-      if (fs.existsSync(path.join(detectionRoot, PACKAGE_MANAGERS[manager].lockfile))) {
+    for (const manager of SUPPORTED_PACKAGE_MANAGERS) {
+      if (findExistingLockfile(manager, detectionRoot)) {
         detectedPM = manager;
         break;
       }
@@ -82,6 +81,16 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
     isWorkspace,
     workspaceRoot: isWorkspace && lockfileDir ? lockfileDir : undefined
   };
+}
+
+export function findExistingLockfile(pm: PackageManager, dir: string): string | undefined {
+  const lf = getPMConfig(pm).lockfile;
+  const candidates = Array.isArray(lf) ? lf : [lf];
+  for (const name of candidates) {
+    const p = path.join(dir, name);
+    if (fs.existsSync(p)) return p;
+  }
+  return undefined;
 }
 
 export function shouldRunAtWorkspaceRoot(command: string, args: string[]): boolean {
