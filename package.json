@@ -1,11 +1,11 @@
 {
   "name": "@assistant-ui/xpm",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Universal package manager wrapper that automatically detects and uses the right package manager",
   "main": "dist/index.js",
   "bin": {
-    "xpm": "./dist/cli.js",
-    "xpx": "./dist/xpx-cli.js"
+    "xpm": "dist/cli.js",
+    "xpx": "dist/xpx-cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -42,7 +42,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/assistant-ui/xpm"
+    "url": "git+https://github.com/assistant-ui/xpm.git"
   },
   "bugs": {
     "url": "https://github.com/assistant-ui/xpm/issues"
