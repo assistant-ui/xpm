@@ -4,6 +4,7 @@ import { synchronizeDependencies } from './dependency-synchronizer';
 import { mapCommand } from './command-mapper';
 import { setDefaultPackageManager, setGlobalPackageManager, getGlobalPackageManager } from './config';
 import { registry } from './package-manager-registry';
+import { hasScript } from './package-json';
 import { SKIP_SYNC_COMMANDS, GLOBAL_SUPPORT_COMMANDS } from './command-constants';
 
 export class XPM {
@@ -149,9 +150,10 @@ Supported package managers:
     try {
       const { packageManager, projectRoot, isWorkspace, workspaceRoot } = detectPackageManager();
 
-      // Auto-sync dependencies unless it's an install-like command or no command
+      // Auto-sync dependencies unless it's an install-like command, no command, or a script
       // Only for JavaScript projects currently
-      if (command && !SKIP_SYNC_COMMANDS.includes(command as any) && packageManager.ecosystem === 'javascript') {
+      const isScript = command && packageManager.ecosystem === 'javascript' && hasScript(command, projectRoot);
+      if (command && !SKIP_SYNC_COMMANDS.includes(command as any) && !isScript && packageManager.ecosystem === 'javascript') {
         synchronizeDependencies({ packageManager, projectRoot, workspaceRoot, dryRun: this.dryRun });
       }
 

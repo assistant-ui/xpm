@@ -11,7 +11,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build",
-    "test": "echo \"No tests yet\"",
+    "test": "./test/run-tests.sh",
+    "test:js": "node ./test/test-suite.js",
+    "test:fixtures": "./test/fixtures/create-fixtures.sh",
     "ci:version": "changeset version && pnpm install --no-frozen-lockfile",
     "ci:publish": "npm publish --access public"
   },

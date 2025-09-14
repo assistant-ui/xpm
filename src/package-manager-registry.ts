@@ -103,7 +103,7 @@ export class PackageManagerRegistry {
     return undefined;
   }
 
-  private detectEcosystem(dir: string): Ecosystem | undefined {
+  detectEcosystem(dir: string): Ecosystem | undefined {
     // JavaScript ecosystem detection
     if (fs.existsSync(path.join(dir, 'package.json')) ||
         fs.existsSync(path.join(dir, 'node_modules'))) {

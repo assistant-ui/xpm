@@ -9,3 +9,8 @@ coverage/
 *.swp
 *.swo
 *~
+
+# Test fixtures (generated)
+test/fixtures/js-*/
+test/fixtures/py-*/
+test/fixtures/workspace-*/

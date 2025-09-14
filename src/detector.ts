@@ -19,45 +19,82 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
     throw new Error('No project root found. Not in a recognized project directory.');
   }
 
-  // Detect the package manager
-  let detectedManager = registry.detectFromDirectory(projectRoot);
-
-  // For JavaScript projects, check for workspace root
+  // For JavaScript projects, first search up for lockfiles to determine package manager
+  let detectedManager: BasePackageManager | undefined;
   let workspaceRoot: string | undefined;
   let isWorkspace = false;
 
-  if (detectedManager && detectedManager.ecosystem === 'javascript') {
-    // Search up for workspace root (lockfile might be in parent)
-    let dir = projectRoot;
-    let lockfileDir: string | null = null;
+  const ecosystem = registry.detectEcosystem(projectRoot);
+
+  if (ecosystem === 'javascript') {
+    // Search up the tree for lockfiles to determine the package manager
+    let dir = startDir;
+    let lockfileDir: string | undefined;
+    let lockfileManager: BasePackageManager | undefined;
 
     while (dir !== path.dirname(dir)) {
-      // Check for lockfiles in current directory
-      for (const lockFileName of detectedManager.lockFileNames) {
-        if (fs.existsSync(path.join(dir, lockFileName))) {
-          lockfileDir = dir;
-          break;
+      // Check all JavaScript package managers' lockfiles
+      const jsManagers = registry.getByEcosystem('javascript');
+      for (const manager of jsManagers) {
+        for (const lockFileName of manager.lockFileNames) {
+          if (fs.existsSync(path.join(dir, lockFileName))) {
+            lockfileDir = dir;
+            lockfileManager = manager;
+            break;
+          }
         }
+        if (lockfileManager) break;
       }
 
-      if (lockfileDir && lockfileDir !== projectRoot) {
-        workspaceRoot = lockfileDir;
-        isWorkspace = true;
+      if (lockfileManager) {
+        detectedManager = lockfileManager;
+        if (lockfileDir !== projectRoot) {
+          workspaceRoot = lockfileDir;
+          isWorkspace = true;
+        }
         break;
       }
 
       // Move up one directory
       const parentDir = path.dirname(dir);
 
-      // Continue searching if parent has package.json (could be workspace root)
-      if (fs.existsSync(path.join(parentDir, 'package.json'))) {
-        dir = parentDir;
-      } else {
+      // Stop if we've reached the root of the filesystem
+      if (parentDir === dir) {
         break;
       }
-    }
 
-    // Try to read package.json for corepack config
+      // Continue searching if:
+      // 1. Parent has package.json (could be workspace root)
+      // 2. Parent's parent has package.json (we might be in packages/ dir)
+      // 3. We're still within a reasonable project structure (max 5 levels up)
+      const parentHasPackageJson = fs.existsSync(path.join(parentDir, 'package.json'));
+      const grandparentDir = path.dirname(parentDir);
+      const grandparentHasPackageJson = grandparentDir !== parentDir &&
+                                        fs.existsSync(path.join(grandparentDir, 'package.json'));
+
+      if (parentHasPackageJson || grandparentHasPackageJson) {
+        dir = parentDir;
+      } else {
+        // One more check: if parent has common workspace config files
+        const hasWorkspaceConfig = fs.existsSync(path.join(parentDir, 'pnpm-workspace.yaml')) ||
+                                   fs.existsSync(path.join(parentDir, 'pnpm-workspace.yml')) ||
+                                   fs.existsSync(path.join(parentDir, 'lerna.json'));
+        if (hasWorkspaceConfig) {
+          dir = parentDir;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  // If no lockfile found, detect from the project root directory
+  if (!detectedManager) {
+    detectedManager = registry.detectFromDirectory(projectRoot);
+  }
+
+  // For JavaScript projects, check for corepack config
+  if (detectedManager && detectedManager.ecosystem === 'javascript') {
     const detectionRoot = workspaceRoot || projectRoot;
     try {
       const packageJson = JSON.parse(fs.readFileSync(path.join(detectionRoot, 'package.json'), 'utf-8'));
