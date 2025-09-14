@@ -3,6 +3,7 @@ import { detectPackageManager, shouldRunAtWorkspaceRoot } from './detector';
 import { synchronizeDependencies } from './dependency-synchronizer';
 import { mapCommand } from './command-mapper';
 import { setDefaultPackageManager, setGlobalPackageManager, getGlobalPackageManager } from './config';
+import { registry } from './package-manager-registry';
 import { SKIP_SYNC_COMMANDS, GLOBAL_SUPPORT_COMMANDS } from './command-constants';
 
 export class XPM {
@@ -45,6 +46,10 @@ export class XPM {
   }
 
   private showHelp(): void {
+    const supportedManagers = registry.getAllManagers().map(m => m.name).join('/');
+    const jsManagers = registry.getByEcosystem('javascript').map(m => m.name).join('/');
+    const pyManagers = registry.getByEcosystem('python').map(m => m.name).join('/');
+
     console.log(`xpm v${this.version}
 
 Usage: xpm [command] [...args]
@@ -59,13 +64,15 @@ Commands:
 Flags: --dry-run, --version/-v, --help/-h, -g/--global
 
 Config:
-  xpm set-config default-package-manager <npm|yarn|pnpm|bun>
-  xpm set-config global-package-manager <npm|yarn|pnpm|bun>
+  xpm set-config default-package-manager <${supportedManagers}>
+  xpm set-config global-package-manager <${jsManagers}>
 
 Global installs:
   xpm install -g <package>  # Uses configured global package manager (default: npm)
 
-Detects: npm/yarn/pnpm/bun`);
+Supported package managers:
+  JavaScript: ${jsManagers}
+  Python: ${pyManagers}`);
   }
 
   run(): void {
@@ -98,30 +105,44 @@ Detects: npm/yarn/pnpm/bun`);
 
     // Check for global flag with install/uninstall commands
     const hasGlobalFlag = this.args.includes('-g') || this.args.includes('--global');
-    
+
     if (hasGlobalFlag && command && GLOBAL_SUPPORT_COMMANDS.includes(command as any)) {
-      // TODO(yarn-global): Yarn differs for global installs.
-      // - Yarn v1 uses: `yarn global <subcmd> ...` (no -g flag)
-      // - Yarn v2+ removed persistent global installs; prefer error + guidance or fallback
-      // Consider: detect Yarn major via `yarn -v` and special-case here.
       // Handle global installs/uninstalls
-      const globalPackageManager = getGlobalPackageManager();
+      const globalPMName = getGlobalPackageManager();
+      const globalPM = registry.get(globalPMName);
+
+      if (!globalPM) {
+        console.error(`Global package manager '${globalPMName}' not found`);
+        process.exit(1);
+      }
+
+      // Only JavaScript package managers support global installs currently
+      if (globalPM.ecosystem !== 'javascript') {
+        console.error(`Global installs are only supported for JavaScript package managers`);
+        process.exit(1);
+      }
+
       const filteredArgs = this.args.filter(arg => arg !== '-g' && arg !== '--global');
-      
-      // Map the command for the global package manager (skip the command itself from args)
       const argsWithoutCommand = filteredArgs.slice(1);
-      const mapped = mapCommand(command, argsWithoutCommand, globalPackageManager, undefined);
-      
-      // Add global flag to the mapped args
-      const finalArgs = [mapped.command, '-g', ...mapped.args];
-      
+      const mapped = mapCommand(command, argsWithoutCommand, globalPM, undefined);
+
+      // Handle special case for Yarn global commands
+      let finalArgs: string[];
+      if (globalPM.name === 'yarn') {
+        // Yarn v1 uses: yarn global add/remove <package>
+        finalArgs = ['global', mapped.command, ...mapped.args];
+      } else {
+        const globalFlag = globalPM.getGlobalFlag() || '-g';
+        finalArgs = [mapped.command, globalFlag, ...mapped.args];
+      }
+
       if (this.dryRun) {
-        console.log(`[dry-run] Would execute: ${globalPackageManager} ${finalArgs.join(' ')}`);
+        console.log(`[dry-run] Would execute: ${globalPM.name} ${finalArgs.join(' ')}`);
         return;
       }
-      
-      console.log(`Using global package manager: ${globalPackageManager}`);
-      this.executeCommand(globalPackageManager, finalArgs, process.cwd());
+
+      console.log(`Using global package manager: ${globalPM.name}`);
+      this.executeCommand(globalPM.name, finalArgs, process.cwd());
       return;
     }
 
@@ -129,34 +150,48 @@ Detects: npm/yarn/pnpm/bun`);
       const { packageManager, projectRoot, isWorkspace, workspaceRoot } = detectPackageManager();
 
       // Auto-sync dependencies unless it's an install-like command or no command
-      if (command && !SKIP_SYNC_COMMANDS.includes(command as any)) {
+      // Only for JavaScript projects currently
+      if (command && !SKIP_SYNC_COMMANDS.includes(command as any) && packageManager.ecosystem === 'javascript') {
         synchronizeDependencies({ packageManager, projectRoot, workspaceRoot, dryRun: this.dryRun });
       }
 
       // No command = install
       if (!command) {
-        return synchronizeDependencies({ 
-          packageManager, projectRoot, workspaceRoot, 
-          dryRun: this.dryRun, force: true 
-        });
+        if (packageManager.ecosystem === 'javascript') {
+          return synchronizeDependencies({
+            packageManager, projectRoot, workspaceRoot,
+            dryRun: this.dryRun, force: true
+          });
+        } else {
+          // For non-JS ecosystems, run the install command
+          const installCmd = packageManager.getInstallCommand();
+          const finalArgs = installCmd.split(' ');
+
+          if (this.dryRun) {
+            return console.log(`[dry-run] Would execute: ${packageManager.name} ${finalArgs.join(' ')} (in ${projectRoot})`);
+          }
+
+          this.executeCommand(packageManager.name, finalArgs, projectRoot);
+          return;
+        }
       }
 
       // Determine execution directory
       const runAtRoot = isWorkspace && shouldRunAtWorkspaceRoot(command, args);
-      const executionDir = runAtRoot && workspaceRoot ? workspaceRoot : 
-                          packageManager === 'npm' ? projectRoot : 
+      const executionDir = runAtRoot && workspaceRoot ? workspaceRoot :
+                          packageManager.name === 'npm' ? projectRoot :
                           process.cwd();
 
       // Map command and execute
       const mapped = mapCommand(command, args, packageManager, projectRoot);
       const finalArgs = [mapped.command, ...mapped.args];
-      
+
       if (this.dryRun) {
-        return console.log(`[dry-run] Would execute: ${packageManager} ${finalArgs.join(' ')} (in ${executionDir})`);
+        return console.log(`[dry-run] Would execute: ${packageManager.name} ${finalArgs.join(' ')} (in ${executionDir})`);
       }
-      
+
       if (isWorkspace && runAtRoot) console.log(`Running at workspace root: ${workspaceRoot}`);
-      this.executeCommand(packageManager, finalArgs, executionDir);
+      this.executeCommand(packageManager.name, finalArgs, executionDir);
 
     } catch (error) {
       console.error(`Error: ${error instanceof Error ? error.message : error}`);

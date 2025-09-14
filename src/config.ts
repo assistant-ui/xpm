@@ -1,10 +1,10 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join, dirname } from 'path';
-import { PackageManager, SUPPORTED_PACKAGE_MANAGERS } from './package-manager-config';
+import { PackageManagerName, registry } from './package-manager-registry';
 
-function isValidPackageManager(pm: string): pm is PackageManager {
-  return SUPPORTED_PACKAGE_MANAGERS.includes(pm as any);
+function isValidPackageManager(pm: string): pm is PackageManagerName {
+  return registry.get(pm) !== undefined;
 }
 
 const CONFIG_PATHS = [
@@ -24,8 +24,8 @@ function getConfigPath(): string {
 }
 
 interface Config {
-  defaultPackageManager?: PackageManager;
-  globalPackageManager?: PackageManager;
+  defaultPackageManager?: PackageManagerName;
+  globalPackageManager?: PackageManagerName;
 }
 
 function getConfig(): Config {
@@ -49,11 +49,11 @@ function saveConfig(config: Config): void {
   writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
 
-function getPackageManager(envVar: string, configKey: keyof Config): PackageManager {
+function getPackageManager(envVar: string, configKey: keyof Config): PackageManagerName {
   // 1. Environment variable (highest priority)
   const envPM = process.env[envVar];
   if (envPM && isValidPackageManager(envPM)) {
-    return envPM as PackageManager;
+    return envPM as PackageManagerName;
   }
 
   // 2. Config file
@@ -66,21 +66,22 @@ function getPackageManager(envVar: string, configKey: keyof Config): PackageMana
   return 'npm';
 }
 
-export function getDefaultPackageManager(): PackageManager {
+export function getDefaultPackageManager(): PackageManagerName {
   return getPackageManager('XPM_DEFAULT_PM', 'defaultPackageManager');
 }
 
-export function getGlobalPackageManager(): PackageManager {
+export function getGlobalPackageManager(): PackageManagerName {
   return getPackageManager('XPM_GLOBAL_PM', 'globalPackageManager');
 }
 
 function setPackageManager(pm: string, configKey: keyof Config, displayName: string): void {
   if (!isValidPackageManager(pm)) {
-    throw new Error(`Invalid package manager: ${pm}. Must be one of: ${SUPPORTED_PACKAGE_MANAGERS.join(', ')}`);
+    const allManagers = registry.getAllManagers().map(m => m.name).join(', ');
+    throw new Error(`Invalid package manager: ${pm}. Must be one of: ${allManagers}`);
   }
-  
+
   const config = getConfig();
-  config[configKey] = pm as PackageManager;
+  config[configKey] = pm as PackageManagerName;
   saveConfig(config);
   console.log(`${displayName} set to: ${pm}`);
 }

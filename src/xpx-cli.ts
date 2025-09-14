@@ -4,7 +4,7 @@ import { spawn } from 'child_process';
 import { detectPackageManager } from './detector';
 
 // Map package managers to their execute commands
-const executorMap = {
+const executorMap: Record<string, string> = {
   npm: 'npx',
   yarn: 'dlx',  // yarn dlx for Yarn 2+, yarn v1 doesn't have equivalent
   pnpm: 'pnpx', // or could use 'pnpm dlx'
@@ -40,13 +40,18 @@ if (args.includes('--version') || args.includes('-v')) {
 
 try {
   const { packageManager } = detectPackageManager();
-  const executor = executorMap[packageManager];
-  
+  const executor = executorMap[packageManager.name];
+
+  if (!executor) {
+    console.error(`Package executor not available for ${packageManager.name}`);
+    process.exit(1);
+  }
+
   // Build executor command
   let execCommand: string;
   let execArgs: string[];
-  
-  if (packageManager === 'yarn') {
+
+  if (packageManager.name === 'yarn') {
     execCommand = 'yarn';
     execArgs = ['dlx', ...args];
   } else {

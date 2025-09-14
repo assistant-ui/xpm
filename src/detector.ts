@@ -1,111 +1,97 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { PackageManager, SUPPORTED_PACKAGE_MANAGERS, getPMConfig } from './package-manager-config';
+import { BasePackageManager } from './base-package-manager';
+import { registry, PackageManagerName } from './package-manager-registry';
 import { getDefaultPackageManager } from './config';
 import { INSTALL_COMMANDS, WORKSPACE_ROOT_COMMANDS } from './command-constants';
 
 export interface DetectionResult {
-  packageManager: PackageManager;
+  packageManager: BasePackageManager;
   projectRoot: string;
   isWorkspace: boolean;
   workspaceRoot?: string;
 }
 
 export function detectPackageManager(startDir = process.cwd()): DetectionResult {
-  // Find nearest package.json
-  let dir = startDir;
-  let packageJsonDir: string | null = null;
-  
-  while (dir !== path.dirname(dir)) {
-    if (fs.existsSync(path.join(dir, 'package.json'))) {
-      packageJsonDir = dir;
-      break;
-    }
-    dir = path.dirname(dir);
+  // Find project root based on ecosystem
+  const projectRoot = registry.findProjectRoot(startDir);
+  if (!projectRoot) {
+    throw new Error('No project root found. Not in a recognized project directory.');
   }
-  
-  if (!packageJsonDir) throw new Error('No package.json found. Not a Node.js project directory.');
-  
-  // Find lockfile (might be in parent for workspaces)
-  let lockfileDir: string | null = null;
-  let lockfileManager: PackageManager | null = null;
-  dir = packageJsonDir;
 
-  // Search up the directory tree for lockfiles, but stay within Node.js project boundaries
-  while (dir !== path.dirname(dir)) {
-    // Check for lockfiles in current directory
-    for (const mgr of SUPPORTED_PACKAGE_MANAGERS) {
-      const lockfile = findExistingLockfile(mgr, dir);
-      if (lockfile) {
-        lockfileDir = dir;
-        lockfileManager = mgr;
+  // Detect the package manager
+  let detectedManager = registry.detectFromDirectory(projectRoot);
+
+  // For JavaScript projects, check for workspace root
+  let workspaceRoot: string | undefined;
+  let isWorkspace = false;
+
+  if (detectedManager && detectedManager.ecosystem === 'javascript') {
+    // Search up for workspace root (lockfile might be in parent)
+    let dir = projectRoot;
+    let lockfileDir: string | null = null;
+
+    while (dir !== path.dirname(dir)) {
+      // Check for lockfiles in current directory
+      for (const lockFileName of detectedManager.lockFileNames) {
+        if (fs.existsSync(path.join(dir, lockFileName))) {
+          lockfileDir = dir;
+          break;
+        }
+      }
+
+      if (lockfileDir && lockfileDir !== projectRoot) {
+        workspaceRoot = lockfileDir;
+        isWorkspace = true;
+        break;
+      }
+
+      // Move up one directory
+      const parentDir = path.dirname(dir);
+
+      // Continue searching if parent has package.json (could be workspace root)
+      if (fs.existsSync(path.join(parentDir, 'package.json'))) {
+        dir = parentDir;
+      } else {
         break;
       }
     }
 
-    if (lockfileDir) break;
-
-    // Move up one directory
-    const parentDir = path.dirname(dir);
-
-    // Continue searching if parent has package.json (could be workspace root)
-    // or if parent's parent has package.json (we might be in packages/ dir)
-    if (fs.existsSync(path.join(parentDir, 'package.json')) ||
-        (parentDir !== path.dirname(parentDir) &&
-         fs.existsSync(path.join(path.dirname(parentDir), 'package.json')))) {
-      dir = parentDir;
-    } else {
-      break;
-    }
-  }
-  
-  const detectionRoot = lockfileDir || packageJsonDir;
-  const isWorkspace = lockfileDir !== null && lockfileDir !== packageJsonDir;
-  
-  // Try to read package.json for corepack config
-  let detectedPM: PackageManager | null = null;
-  try {
-    const packageJson = JSON.parse(fs.readFileSync(path.join(detectionRoot, 'package.json'), 'utf-8'));
-    const pmField = packageJson.packageManager ?? packageJson.devEngines?.packageManager?.name;
-    if (pmField) {
-      const managerName = pmField.split('@')[0] as PackageManager;
-      if (SUPPORTED_PACKAGE_MANAGERS.includes(managerName)) {
-        detectedPM = managerName;
-      }
-    }
-  } catch {}
-
-  // Use the lockfile manager if found, otherwise check for lockfiles
-  if (!detectedPM) {
-    if (lockfileManager) {
-      detectedPM = lockfileManager;
-    } else {
-      for (const manager of SUPPORTED_PACKAGE_MANAGERS) {
-        if (findExistingLockfile(manager, detectionRoot)) {
-          detectedPM = manager;
-          break;
+    // Try to read package.json for corepack config
+    const detectionRoot = workspaceRoot || projectRoot;
+    try {
+      const packageJson = JSON.parse(fs.readFileSync(path.join(detectionRoot, 'package.json'), 'utf-8'));
+      const pmField = packageJson.packageManager ?? packageJson.devEngines?.packageManager?.name;
+      if (pmField) {
+        const managerName = pmField.split('@')[0];
+        const manager = registry.get(managerName);
+        if (manager) {
+          detectedManager = manager;
         }
       }
+    } catch {}
+  }
+
+  // Fall back to configured default
+  if (!detectedManager) {
+    const defaultPMName = getDefaultPackageManager();
+    detectedManager = registry.get(defaultPMName);
+    if (!detectedManager) {
+      // Fallback to npm if default is not found
+      detectedManager = registry.get('npm')!;
     }
   }
-  
-  // Fall back to configured default
-  if (!detectedPM) {
-    detectedPM = getDefaultPackageManager();
-  }
-  
+
   return {
-    packageManager: detectedPM,
-    projectRoot: packageJsonDir,
+    packageManager: detectedManager,
+    projectRoot,
     isWorkspace,
-    workspaceRoot: isWorkspace && lockfileDir ? lockfileDir : undefined
+    workspaceRoot
   };
 }
 
-export function findExistingLockfile(pm: PackageManager, dir: string): string | undefined {
-  const lf = getPMConfig(pm).lockfile;
-  const candidates = Array.isArray(lf) ? lf : [lf];
-  for (const name of candidates) {
+export function findExistingLockfile(pm: BasePackageManager, dir: string): string | undefined {
+  for (const name of pm.lockFileNames) {
     const p = path.join(dir, name);
     if (fs.existsSync(p)) return p;
   }
