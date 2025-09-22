@@ -1,7 +1,6 @@
-import { BasePackageManager, PackageManagerConfig } from '../base-package-manager';
+import { BasePackageManager } from '../base-package-manager';
 import { spawnSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
+import { getBunScriptMode } from '../config';
 
 const PACKAGE_JSON = {
   name: 'package.json',
@@ -183,7 +182,7 @@ export class BunPackageManager extends BasePackageManager {
     });
   }
 
-  mapCommand(command: string, args: string[]): { command: string; args: string[] } {
+  mapCommand(command: string, args: string[], options?: any): { command: string; args: string[] } {
     if (command === 'install' && args.length > 0) {
       return { command: 'add', args };
     }
@@ -193,6 +192,15 @@ export class BunPackageManager extends BasePackageManager {
     if (command === 'exec') {
       return { command: 'run', args };
     }
+
+    // Generalize: Prefer scripts over builtins when script exists and mode allows
+    if (options?.hasScript) {
+      const mode = getBunScriptMode();
+      if (mode === 'script' || (mode === 'auto' && options.hasScript)) {
+        return { command: 'run', args: [command, ...args] };
+      }
+    }
+    // Otherwise, use direct command (builtin if applicable) with mapped args
 
     const devFlags = ['-D', '--save-dev', '--dev'];
     const mappedArgs = args.map(arg => devFlags.includes(arg) ? '-d' : arg);

@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import { detectPackageManager, shouldRunAtWorkspaceRoot } from './detector';
 import { synchronizeDependencies } from './dependency-synchronizer';
 import { mapCommand } from './command-mapper';
-import { setDefaultPackageManager, setGlobalPackageManager, getGlobalPackageManager } from './config';
+import { setDefaultPackageManager, setGlobalPackageManager, getGlobalPackageManager, setBunScriptMode } from './config';
 import { registry } from './package-manager-registry';
 import { hasScript } from './package-json';
 import { SKIP_SYNC_COMMANDS, GLOBAL_SUPPORT_COMMANDS } from './command-constants';
@@ -46,12 +46,12 @@ export class XPM {
     }
   }
 
-  private showHelp(): void {
-    const supportedManagers = registry.getAllManagers().map(m => m.name).join('/');
-    const jsManagers = registry.getByEcosystem('javascript').map(m => m.name).join('/');
-    const pyManagers = registry.getByEcosystem('python').map(m => m.name).join('/');
+    private showHelp(): void {
+      const supportedManagers = registry.getAllManagers().map(m => m.name).join('/');
+      const jsManagers = registry.getByEcosystem('javascript').map(m => m.name).join('/');
+      const pyManagers = registry.getByEcosystem('python').map(m => m.name).join('/');
 
-    console.log(`xpm v${this.version}
+      console.log(`xpm v${this.version}
 
 Usage: xpm [command] [...args]
 
@@ -67,6 +67,7 @@ Flags: --dry-run, --version/-v, --help/-h, -g/--global
 Config:
   xpm set-config default-package-manager <${supportedManagers}>
   xpm set-config global-package-manager <${jsManagers}>
+  xpm set-config bun-script-mode <auto|script|builtin>
 
 Global installs:
   xpm install -g <package>  # Uses configured global package manager (default: npm)
@@ -74,7 +75,7 @@ Global installs:
 Supported package managers:
   JavaScript: ${jsManagers}
   Python: ${pyManagers}`);
-  }
+    }
 
   run(): void {
     this.parseFlags();
@@ -98,8 +99,12 @@ Supported package managers:
           console.error(error instanceof Error ? error.message : error);
           process.exit(1);
         }
+      } else if (args[0] === 'bun-script-mode' && args[1]) {
+        setBunScriptMode(args[1]);
+        process.exit(0);
       } else {
-        console.error('Usage: xpm set-config <default-package-manager|global-package-manager> <npm|yarn|pnpm|bun>');
+        const supportedManagers = registry.getAllManagers().map(m => m.name).join('|');
+        console.error(`Usage: xpm set-config <default-package-manager|global-package-manager|bun-script-mode> <${supportedManagers}|auto|script|builtin>`);
         process.exit(1);
       }
     }

@@ -26,6 +26,7 @@ function getConfigPath(): string {
 interface Config {
   defaultPackageManager?: PackageManagerName;
   globalPackageManager?: PackageManagerName;
+  bunScriptMode?: 'auto' | 'script' | 'builtin';
 }
 
 function getConfig(): Config {
@@ -49,7 +50,9 @@ function saveConfig(config: Config): void {
   writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
 
-function getPackageManager(envVar: string, configKey: keyof Config): PackageManagerName {
+type PackageManagerConfigKey = 'defaultPackageManager' | 'globalPackageManager';
+
+function getPackageManager(envVar: string, configKey: PackageManagerConfigKey): PackageManagerName {
   // 1. Environment variable (highest priority)
   const envPM = process.env[envVar];
   if (envPM && isValidPackageManager(envPM)) {
@@ -74,7 +77,30 @@ export function getGlobalPackageManager(): PackageManagerName {
   return getPackageManager('XPM_GLOBAL_PM', 'globalPackageManager');
 }
 
-function setPackageManager(pm: string, configKey: keyof Config, displayName: string): void {
+export function getBunScriptMode(): 'auto' | 'script' | 'builtin' {
+  const config = getConfig();
+  const mode = config.bunScriptMode;
+  if (mode && !['auto', 'script', 'builtin'].includes(mode)) {
+    console.warn(`Invalid bun-script-mode '${mode}' in config, defaulting to 'builtin'`);
+    return 'builtin';
+  }
+  return mode || 'builtin';
+}
+
+function setBunScriptMode(mode: string): void {
+  if (!['auto', 'script', 'builtin'].includes(mode)) {
+    console.warn(`Invalid bun-script-mode '${mode}', setting to default 'builtin'`);
+    mode = 'builtin';
+  }
+  const config = getConfig();
+  config.bunScriptMode = mode as 'auto' | 'script' | 'builtin';
+  saveConfig(config);
+  console.log(`Bun script mode set to: ${mode}`);
+}
+
+export { setBunScriptMode };
+
+function setPackageManager(pm: string, configKey: PackageManagerConfigKey, displayName: string): void {
   if (!isValidPackageManager(pm)) {
     const allManagers = registry.getAllManagers().map(m => m.name).join(', ');
     throw new Error(`Invalid package manager: ${pm}. Must be one of: ${allManagers}`);
