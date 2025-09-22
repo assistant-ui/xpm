@@ -12,7 +12,6 @@ For example, when you run `xpm dev` in a project:
 - it auto-installs dependencies if necessary (compares lockfile hash)
 - runs `npm run dev` / `yarn dev` / `pnpm dev` / `bun dev`
 
-
 ## Install
 
 ```bash
@@ -28,7 +27,6 @@ npm install -g @assistant-ui/xpm
 - 🏃 **Runs from anywhere** - works in project subdirectories
 - 🌍 **Multi-language** - supports JavaScript and Python ecosystems
 
-
 ## Usage
 
 ```bash
@@ -43,7 +41,16 @@ xpx prettier      # Download and run from the registry
 
 ## Configuration
 
-xpm defaults to npm for global installs. Configure this with a config file at `~/.config/xpm/config.json` or `~/.xpmrc`.
+xpm defaults to npm for global installs. Configure via CLI, config file at `~/.config/xpm/config.json` or `~/.xpmrc`, or environment variables.
+
+Example config:
+
+```json
+{
+  "default-package-manager": "pnpm",
+  "global-package-manager": "npm"
+}
+```
 
 ### Default Package Manager
 
@@ -54,6 +61,7 @@ xpm set-config default-package-manager <npm|yarn|pnpm|bun>
 ```
 
 Environment variable (takes precedence):
+
 ```bash
 export XPM_DEFAULT_PM=<npm|yarn|pnpm|bun>
 ```
@@ -67,6 +75,7 @@ xpm set-config global-package-manager <npm|yarn|pnpm|bun>
 ```
 
 Environment variable (takes precedence):
+
 ```bash
 export XPM_GLOBAL_PM=<npm|yarn|pnpm|bun>
 ```
