@@ -18,12 +18,13 @@ export class XPM {
   
   private executeCommand(packageManager: string, args: string[], cwd: string): void {
     const fullCommand = `${packageManager} ${args.join(' ')}`;
-    
+
     if (this.dryRun) {
       console.log(`[dry-run] Would execute: ${fullCommand} (in ${cwd})`);
       return;
     }
-    
+
+    console.log(`\x1b[36m→ ${fullCommand}\x1b[0m`);
     const child = spawn(packageManager, args, { stdio: 'inherit', shell: false, cwd });
     child.on('exit', (code) => process.exit(code || 0));
     child.on('error', (error) => {
@@ -142,7 +143,7 @@ Supported package managers:
         return;
       }
 
-      console.log(`Using global package manager: ${globalPM.name}`);
+      console.log(`\x1b[33mUsing global package manager: ${globalPM.name}\x1b[0m`);
       this.executeCommand(globalPM.name, finalArgs, process.cwd());
       return;
     }
@@ -150,10 +151,16 @@ Supported package managers:
     try {
       const { packageManager, projectRoot, isWorkspace, workspaceRoot } = detectPackageManager();
 
-      // Auto-sync dependencies unless it's an install-like command, no command, or a script
+      // Auto-sync dependencies unless it's an install-like command
+      // Always sync if lockfile is missing, even for scripts
       // Only for JavaScript projects currently
       const isScript = command && packageManager.ecosystem === 'javascript' && hasScript(command, projectRoot);
-      if (command && !SKIP_SYNC_COMMANDS.includes(command as any) && !isScript && packageManager.ecosystem === 'javascript') {
+      const shouldAutoSync = command &&
+        !SKIP_SYNC_COMMANDS.includes(command as any) &&
+        packageManager.ecosystem === 'javascript' &&
+        (!isScript || require('./dependency-synchronizer').checkDependencies(packageManager, projectRoot, workspaceRoot));
+
+      if (shouldAutoSync) {
         synchronizeDependencies({ packageManager, projectRoot, workspaceRoot, dryRun: this.dryRun });
       }
 
@@ -192,7 +199,7 @@ Supported package managers:
         return console.log(`[dry-run] Would execute: ${packageManager.name} ${finalArgs.join(' ')} (in ${executionDir})`);
       }
 
-      if (isWorkspace && runAtRoot) console.log(`Running at workspace root: ${workspaceRoot}`);
+      if (isWorkspace && runAtRoot) console.log(`\x1b[33mRunning at workspace root: ${workspaceRoot}\x1b[0m`);
       this.executeCommand(packageManager.name, finalArgs, executionDir);
 
     } catch (error) {

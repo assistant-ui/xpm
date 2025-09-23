@@ -20,7 +20,7 @@ function needsInstall(packageManager: BasePackageManager, projectRoot: string, w
   const installDir = packageManager.installDirectory;
   const hasInstallDir = fs.existsSync(path.join(checkRoot, installDir));
 
-  if (!lockfilePath) return !hasInstallDir;
+  if (!lockfilePath) return true; // Always install if lockfile is missing
 
   const currentHash = hashFile(lockfilePath);
   const cache = readCache(checkRoot);
@@ -33,7 +33,8 @@ export function synchronizeDependencies(options: SyncOptions): void {
   const { packageManager, projectRoot, workspaceRoot, dryRun = false, ciMode = false, force = false } = options;
   const executionRoot = workspaceRoot || projectRoot;
 
-  if (!force && !needsInstall(packageManager, projectRoot, workspaceRoot) && !ciMode) return;
+  const shouldSync = needsInstall(packageManager, projectRoot, workspaceRoot);
+  if (!force && !shouldSync && !ciMode) return;
 
   const installCmd = packageManager.getInstallCommand(ciMode);
   const command = `${packageManager.name} ${installCmd}`;
@@ -44,8 +45,11 @@ export function synchronizeDependencies(options: SyncOptions): void {
   }
 
   if (!force) {
-    console.log(`Synchronizing dependencies with ${packageManager.name}${ciMode ? ' (CI mode)' : ''}...`);
+    if (shouldSync) {
+      console.log(`\x1b[33m⚠ synchronizing node_modules\x1b[0m`);
+    }
   }
+  console.log(`\x1b[36m→ ${command}\x1b[0m`);
 
   try {
     const args = installCmd.split(' ');
