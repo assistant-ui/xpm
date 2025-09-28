@@ -78,6 +78,20 @@ const tests = [
       { cmd: 'build', expected: 'bun build' }
     ]
   },
+  {
+    name: 'Deno Detection',
+    dir: 'js-deno',
+    expectedPM: 'deno',
+    commands: [
+      { cmd: 'install', expected: 'deno install' },
+      { cmd: 'install express', expected: 'deno add express' },
+      { cmd: 'install --dev eslint', expected: 'deno add --dev eslint' },
+      { cmd: 'remove express', expected: 'deno remove express' },
+      { cmd: 'update', expected: 'deno update' },
+      { cmd: 'test', expected: 'deno task test' },
+      { cmd: 'build', expected: 'deno task build' }
+    ]
+  },
 
   // Python Package Managers
   {
@@ -276,7 +290,8 @@ async function testGlobalInstalls() {
   const globalTests = [
     { pm: 'npm', cmd: 'install -g typescript', expected: 'npm install -g typescript' },
     { pm: 'pnpm', cmd: 'install -g typescript', expected: 'pnpm add -g typescript' },
-    { pm: 'bun', cmd: 'install -g typescript', expected: 'bun add -g typescript' }
+    { pm: 'bun', cmd: 'install -g typescript', expected: 'bun add -g typescript' },
+    { pm: 'deno', cmd: 'install -g typescript', expected: 'deno add --global typescript' }
   ];
 
   for (const test of globalTests) {

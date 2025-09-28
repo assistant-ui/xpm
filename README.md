@@ -2,7 +2,7 @@
 
 Working across multiple projects with different package managers?
 
-You can use `xpm` instead of `npm`/`yarn`/`pnpm`/`bun` (and even `pip`/`poetry`/`uv`).
+You can use `xpm` instead of `npm`/`yarn`/`pnpm`/`bun`/`deno` (and even `pip`/`poetry`/`uv`).
 
 Think of `xpm` as your universal translator for package managers. When you run `xpm`, it figures out which package manager your project uses, ensures your dependencies are up-to-date, and runs the appropriate command. It's like having muscle memory that works everywhere.
 
@@ -10,7 +10,7 @@ For example, when you run `xpm dev` in a project:
 
 - `xpm` detects the package manager
 - it auto-installs dependencies if necessary (compares lockfile hash)
-- runs `npm run dev` / `yarn dev` / `pnpm dev` / `bun dev`
+- runs `npm run dev` / `yarn dev` / `pnpm dev` / `bun dev` / `deno task dev`
 
 
 ## Install
@@ -50,12 +50,12 @@ xpm defaults to npm for global installs. Configure this with a config file at `~
 Set the default package manager for new projects (when no lockfile or package.json `packageManager` field is found):
 
 ```bash
-xpm set-config default-package-manager <npm|yarn|pnpm|bun>
+xpm set-config default-package-manager <npm|yarn|pnpm|bun|deno>
 ```
 
 Environment variable (takes precedence):
 ```bash
-export XPM_DEFAULT_PM=<npm|yarn|pnpm|bun>
+export XPM_DEFAULT_PM=<npm|yarn|pnpm|bun|deno>
 ```
 
 ### Global Package Manager
@@ -63,12 +63,12 @@ export XPM_DEFAULT_PM=<npm|yarn|pnpm|bun>
 Set which package manager to use for global installs (`-g` flag):
 
 ```bash
-xpm set-config global-package-manager <npm|yarn|pnpm|bun>
+xpm set-config global-package-manager <npm|yarn|pnpm|bun|deno>
 ```
 
 Environment variable (takes precedence):
 ```bash
-export XPM_GLOBAL_PM=<npm|yarn|pnpm|bun>
+export XPM_GLOBAL_PM=<npm|yarn|pnpm|bun|deno>
 ```
 
 Default: `npm`
