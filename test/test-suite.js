@@ -29,10 +29,10 @@ const tests = [
     commands: [
       { cmd: 'install', expected: 'npm install' },
       { cmd: 'install express', expected: 'npm install express' },
-      { cmd: 'install -D eslint', expected: 'npm install -D eslint' },
+      { cmd: 'install -D eslint', expected: 'npm install --save-dev eslint' },
       { cmd: 'remove express', expected: 'npm uninstall express' },
       { cmd: 'update', expected: 'npm update' },
-      { cmd: 'test', expected: 'npm run test' },
+      { cmd: 'test', expected: 'npm test' },
       { cmd: 'build', expected: 'npm run build' }
     ]
   },
@@ -43,7 +43,7 @@ const tests = [
     commands: [
       { cmd: 'install', expected: 'yarn install' },
       { cmd: 'install express', expected: 'yarn add express' },
-      { cmd: 'install -D eslint', expected: 'yarn add -D eslint' },
+      { cmd: 'install -D eslint', expected: 'yarn add --dev eslint' },
       { cmd: 'remove express', expected: 'yarn remove express' },
       { cmd: 'update', expected: 'yarn upgrade' },
       { cmd: 'test', expected: 'yarn test' },
@@ -57,7 +57,7 @@ const tests = [
     commands: [
       { cmd: 'install', expected: 'pnpm install' },
       { cmd: 'install express', expected: 'pnpm add express' },
-      { cmd: 'install -D eslint', expected: 'pnpm add -D eslint' },
+      { cmd: 'install -D eslint', expected: 'pnpm add --save-dev eslint' },
       { cmd: 'remove express', expected: 'pnpm remove express' },
       { cmd: 'update', expected: 'pnpm update' },
       { cmd: 'test', expected: 'pnpm test' },
@@ -74,8 +74,8 @@ const tests = [
       { cmd: 'install -D eslint', expected: 'bun add -d eslint' },
       { cmd: 'remove express', expected: 'bun remove express' },
       { cmd: 'update', expected: 'bun update' },
-      { cmd: 'test', expected: 'bun test' },
-      { cmd: 'build', expected: 'bun build' }
+      { cmd: 'test', expected: 'bun run test' },
+      { cmd: 'build', expected: 'bun run build' }
     ]
   },
   {

@@ -151,14 +151,13 @@ Supported package managers:
     try {
       const { packageManager, projectRoot, isWorkspace, workspaceRoot } = detectPackageManager();
 
-      // Auto-sync dependencies unless it's an install-like command
-      // Always sync if lockfile is missing, even for scripts
+      // Auto-sync dependencies unless it's an install-like command or a script
       // Only for JavaScript projects currently
       const isScript = command && packageManager.ecosystem === 'javascript' && hasScript(command, projectRoot);
       const shouldAutoSync = command &&
         !SKIP_SYNC_COMMANDS.includes(command as any) &&
         packageManager.ecosystem === 'javascript' &&
-        (!isScript || require('./dependency-synchronizer').checkDependencies(packageManager, projectRoot, workspaceRoot));
+        !isScript;
 
       if (shouldAutoSync) {
         synchronizeDependencies({ packageManager, projectRoot, workspaceRoot, dryRun: this.dryRun });

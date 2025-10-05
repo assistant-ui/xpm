@@ -19,9 +19,12 @@ export function mapCommand(
 ): { command: string; args: string[] } {
   const normalized = normalizeCommand(command);
 
-  // Handle dev dependencies
-  const hasDevFlag = args.some(arg => ['-D', '--save-dev', '--dev'].includes(arg));
-  const filteredArgs = args.filter(arg => !['-D', '--save-dev', '--dev'].includes(arg));
+  // Only handle dev dependencies for install-like commands
+  const isInstallCommand = normalized === 'install';
+  const hasDevFlag = isInstallCommand && args.some(arg => ['-D', '--save-dev', '--dev'].includes(arg));
+  const filteredArgs = isInstallCommand
+    ? args.filter(arg => !['-D', '--save-dev', '--dev'].includes(arg))
+    : args; // Keep all args for non-install commands
 
   // Use the package manager's mapCommand method for specific mappings
   const mapped = packageManager.mapCommand(normalized, filteredArgs, {

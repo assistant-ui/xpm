@@ -120,7 +120,6 @@ xpm update          # Updates lockfile
 ### TODO
 - [ ] **pnpm patch support** - Support for pnpm patch files and patch packages
 - [ ] **Auto-install package managers** - Prompt user to install missing package managers (for all supported package managers)
-- [ ] **Exclude bun built-in commands** - Exclude `bun test`, `bun build`, and `bun update` as these are Bun runtime commands, not package manager commands
 
 ## License
 

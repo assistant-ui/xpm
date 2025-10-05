@@ -3,7 +3,8 @@ import {
   NpmPackageManager,
   YarnPackageManager,
   PnpmPackageManager,
-  BunPackageManager
+  BunPackageManager,
+  DenoPackageManager
 } from './package-managers/javascript';
 import {
   PipPackageManager,
@@ -17,7 +18,7 @@ import * as path from 'path';
 
 export type Ecosystem = 'javascript' | 'python' | 'rust' | 'ruby' | 'php';
 export type PackageManagerName =
-  | 'npm' | 'yarn' | 'pnpm' | 'bun'
+  | 'npm' | 'yarn' | 'pnpm' | 'bun' | 'deno'
   | 'pip' | 'pipenv' | 'poetry' | 'uv' | 'conda';
 
 export class PackageManagerRegistry {
@@ -34,6 +35,7 @@ export class PackageManagerRegistry {
     this.register(new YarnPackageManager());
     this.register(new PnpmPackageManager());
     this.register(new BunPackageManager());
+    this.register(new DenoPackageManager());
 
     // Python package managers
     this.register(new PipPackageManager());
@@ -106,7 +108,9 @@ export class PackageManagerRegistry {
   detectEcosystem(dir: string): Ecosystem | undefined {
     // JavaScript ecosystem detection
     if (fs.existsSync(path.join(dir, 'package.json')) ||
-        fs.existsSync(path.join(dir, 'node_modules'))) {
+        fs.existsSync(path.join(dir, 'node_modules')) ||
+        fs.existsSync(path.join(dir, 'deno.json')) ||
+        fs.existsSync(path.join(dir, 'deno.jsonc'))) {
       return 'javascript';
     }
 

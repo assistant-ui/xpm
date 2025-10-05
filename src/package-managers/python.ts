@@ -96,8 +96,12 @@ export class PipenvPackageManager extends BasePackageManager {
     });
   }
 
-  mapCommand(command: string, args: string[]): { command: string; args: string[] } {
-    if (command === 'add') {
+  mapCommand(command: string, args: string[], options?: any): { command: string; args: string[] } {
+    if (command === 'add' || (command === 'install' && args.length > 0)) {
+      // Handle dev dependencies
+      if (options?.dev) {
+        return { command: 'install', args: ['--dev', ...args] };
+      }
       return { command: 'install', args };
     }
     if (command === 'remove') {
@@ -142,8 +146,12 @@ export class PoetryPackageManager extends BasePackageManager {
     });
   }
 
-  mapCommand(command: string, args: string[]): { command: string; args: string[] } {
+  mapCommand(command: string, args: string[], options?: any): { command: string; args: string[] } {
     if (command === 'install' && args.length > 0) {
+      // Handle dev dependencies
+      if (options?.dev) {
+        return { command: 'add', args: ['--dev', ...args] };
+      }
       return { command: 'add', args };
     }
     if (command === 'uninstall') {
@@ -188,10 +196,14 @@ export class UvPackageManager extends BasePackageManager {
     });
   }
 
-  mapCommand(command: string, args: string[]): { command: string; args: string[] } {
+  mapCommand(command: string, args: string[], options?: any): { command: string; args: string[] } {
     if (command === 'install') {
       if (args.length === 0) {
         return { command: 'sync', args: [] };
+      }
+      // Handle dev dependencies
+      if (options?.dev) {
+        return { command: 'add', args: ['--dev', ...args] };
       }
       return { command: 'add', args };
     }
