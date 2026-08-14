@@ -158,9 +158,11 @@ touch "$FIXTURES_DIR/workspace-npm/package-lock.json"
 
 # PNPM Workspace
 mkdir -p "$FIXTURES_DIR/workspace-pnpm/packages/app"
+mkdir -p "$FIXTURES_DIR/workspace-pnpm/packages/nested/app"
 cat > "$FIXTURES_DIR/workspace-pnpm/pnpm-workspace.yaml" << 'EOF'
 packages:
   - 'packages/*'
+  - 'packages/*/*'
 EOF
 cat > "$FIXTURES_DIR/workspace-pnpm/package.json" << 'EOF'
 {
@@ -171,6 +173,12 @@ EOF
 cat > "$FIXTURES_DIR/workspace-pnpm/packages/app/package.json" << 'EOF'
 {
   "name": "@workspace/app",
+  "version": "1.0.0"
+}
+EOF
+cat > "$FIXTURES_DIR/workspace-pnpm/packages/nested/app/package.json" << 'EOF'
+{
+  "name": "@workspace/nested-app",
   "version": "1.0.0"
 }
 EOF

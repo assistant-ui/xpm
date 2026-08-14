@@ -165,7 +165,8 @@ const tests = [
     expectedPM: 'pnpm',
     commands: [
       { cmd: 'install', expected: 'pnpm install', fromRoot: true },
-      { cmd: 'install express', expected: 'pnpm add express', fromSubdir: 'packages/app' }
+      { cmd: 'install express', expected: 'pnpm add express', fromSubdir: 'packages/app' },
+      { cmd: 'install express', expected: 'pnpm add express', fromSubdir: 'packages/nested/app' }
     ]
   },
   {

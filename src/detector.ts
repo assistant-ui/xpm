@@ -46,7 +46,7 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
         if (lockfileManager) break;
       }
 
-      if (lockfileManager) {
+      if (lockfileManager && (dir === projectRoot || isWorkspaceRoot(dir))) {
         detectedManager = lockfileManager;
         if (lockfileDir !== projectRoot) {
           workspaceRoot = lockfileDir;
@@ -55,36 +55,14 @@ export function detectPackageManager(startDir = process.cwd()): DetectionResult 
         break;
       }
 
-      // Move up one directory
-      const parentDir = path.dirname(dir);
+      lockfileDir = undefined;
+      lockfileManager = undefined;
 
-      // Stop if we've reached the root of the filesystem
+      const parentDir = path.dirname(dir);
       if (parentDir === dir) {
         break;
       }
-
-      // Continue searching if:
-      // 1. Parent has package.json (could be workspace root)
-      // 2. Parent's parent has package.json (we might be in packages/ dir)
-      // 3. We're still within a reasonable project structure (max 5 levels up)
-      const parentHasPackageJson = fs.existsSync(path.join(parentDir, 'package.json'));
-      const grandparentDir = path.dirname(parentDir);
-      const grandparentHasPackageJson = grandparentDir !== parentDir &&
-                                        fs.existsSync(path.join(grandparentDir, 'package.json'));
-
-      if (parentHasPackageJson || grandparentHasPackageJson) {
-        dir = parentDir;
-      } else {
-        // One more check: if parent has common workspace config files
-        const hasWorkspaceConfig = fs.existsSync(path.join(parentDir, 'pnpm-workspace.yaml')) ||
-                                   fs.existsSync(path.join(parentDir, 'pnpm-workspace.yml')) ||
-                                   fs.existsSync(path.join(parentDir, 'lerna.json'));
-        if (hasWorkspaceConfig) {
-          dir = parentDir;
-        } else {
-          break;
-        }
-      }
+      dir = parentDir;
     }
   }
 

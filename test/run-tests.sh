@@ -135,6 +135,7 @@ run_test "NPM Workspace Package" "workspace-npm" "install express" "npm install 
 echo -e "\n${CYAN}PNPM Workspace${NC}"
 run_test "PNPM Workspace Root" "workspace-pnpm" "install" "pnpm install"
 run_test "PNPM Workspace Package" "workspace-pnpm" "install express" "pnpm add express" "packages/app"
+run_test "Nested PNPM Workspace Package" "workspace-pnpm" "publish" "pnpm publish" "packages/nested/app"
 
 echo -e "\n${CYAN}Yarn Workspace${NC}"
 run_test "Yarn Workspace Root" "workspace-yarn" "install" "yarn install"
