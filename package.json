@@ -30,7 +30,7 @@
   "author": "AgentbaseAI Inc.",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^24.5.2",
+    "@types/node": "^26.6.6",
     "typescript": "^5.9.2"
   },
   "files": [
